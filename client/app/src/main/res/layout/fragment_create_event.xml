@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <EditText
+        android:id="@+id/editName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="5dp"
+        android:hint="Event name"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="5dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:layout_gravity="center_vertical"
+            android:text="Select category: "/>
+
+        <Spinner
+            android:id="@+id/categorySelect"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"/>
+
+    </LinearLayout>
+
+    <RelativeLayout
+        android:id="@+id/startTimeSelectBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="5dp"
+            android:paddingLeft="21dp"
+            android:paddingBottom="5dp"
+            android:text="Select start time: "/>
+
+        <TextView
+            android:id="@+id/startTimeSelect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:paddingTop="5dp"
+            android:paddingRight="21dp"
+            android:paddingBottom="5dp"/>
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/endTimeSelectBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="5dp"
+            android:paddingLeft="21dp"
+            android:paddingBottom="5dp"
+            android:text="Select end time: "/>
+
+        <TextView
+            android:id="@+id/endTimeSelect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:paddingTop="5dp"
+            android:paddingRight="21dp"
+            android:paddingBottom="5dp"/>
+
+    </RelativeLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:paddingLeft="21dp"
+        android:paddingRight="21dp"
+        android:layout_marginBottom="5dp"
+        android:text="Select position of event:"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <fragment
+            android:id="@+id/map"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
+        <Button
+            android:id="@+id/createNew"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:text="Create new"/>
+
+    </RelativeLayout>
+
+</LinearLayout>
