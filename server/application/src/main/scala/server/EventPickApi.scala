@@ -35,7 +35,7 @@ class EventPickApi(categoryRepository: CategoryRepository,
           log("login", s"input: ${login.toString}")
           val loginFuture = userRepository.loginProcess(login.email, login.password)
           onComplete(loginFuture) {
-            case Success(token: Some[String]) => complete(TokenResponseTrue(token = token.get).asJson)
+            case Success(Some(token)) => complete(TokenResponseTrue(token = token).asJson)
             case _ => complete(responseFalse("Email or password incorrect"))
           }
 
@@ -106,7 +106,7 @@ class EventPickApi(categoryRepository: CategoryRepository,
           val findUserTokenFuture = userRepository.findIdByToken(event.token)
           onComplete(findUserTokenFuture) {
 
-            case Success(id:Some[Int]) =>
+            case Success(Some(id)) =>
               try {
                 val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 val eventData = Event(1,
@@ -116,7 +116,7 @@ class EventPickApi(categoryRepository: CategoryRepository,
                   LocalDateTime.parse(event.endTime, formatter),
                   event.latitude,
                   event.longitude,
-                  id.get
+                  id
                 )
 
                 val validation = new Validation().createEventValidate(eventData.name, eventData.startTime, eventData.endTime)
@@ -183,13 +183,13 @@ class EventPickApi(categoryRepository: CategoryRepository,
       parameter('latitude.as[Double], 'longitude.as[Double]) { (latitude, longitude) =>
         val findUserFuture = userRepository.findUserInfoByPosition(latitude, longitude)
         onComplete(findUserFuture) {
-          case Success(user : Some[User]) =>
+          case Success(Some(user)) =>
             val response = UserInfoModel(
               latitude,
               longitude,
-              user.get.firstName,
-              user.get.lastName,
-              user.get.email)
+              user.firstName,
+              user.lastName,
+              user.email)
 
             complete(UserInfoResponse(info = response).asJson)
 
