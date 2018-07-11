@@ -21,6 +21,6 @@ object SeedData {
   )
 
   val events = Set(
-    Event(1, "Sport fest", 1, Timestamp.valueOf(LocalDateTime.of(2018, 6, 28, 10, 10)), Timestamp.valueOf(LocalDateTime.of(2018, 6, 30, 10, 30)), 50.447773, 30.452274, 1)
+    Event(1, "Sport fest", 1, LocalDateTime.of(2018, 6, 28, 10, 10), LocalDateTime.of(2018, 6, 30, 10, 30), 50.447773, 30.452274, 1)
   )
 }

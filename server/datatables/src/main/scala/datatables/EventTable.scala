@@ -1,6 +1,6 @@
 package datatables
 
-import java.sql.Timestamp
+import java.time.LocalDateTime
 
 import model.Event
 import repositories.BaseTable
@@ -10,8 +10,8 @@ class EventTable(tag: Tag) extends Table[model.Event](tag, "event") with BaseTab
   val id = column[Int]("event_id", O.PrimaryKey, O.AutoInc)
   val name = column[String]("name")
   val categoryId = column[Int]("cat_id")
-  val startTime = column[Timestamp]("start_time")
-  val endTime = column[Timestamp]("end_time")
+  val startTime = column[LocalDateTime]("start_time")
+  val endTime = column[LocalDateTime]("end_time")
   val latitude = column[Double]("latitude")
   val longitude = column[Double]("longitude")
   val userId = column[Int]("user_id")

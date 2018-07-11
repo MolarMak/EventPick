@@ -1,4 +1,4 @@
-import java.sql.Timestamp
+import java.time.LocalDateTime
 
 import io.circe.generic.JsonCodec
 
@@ -8,7 +8,7 @@ package object model {
 
   case class User(id: Int, firstName: String, lastName: Option[String], age: Int, gender: Int, email: String, password: String, token: String) extends HasId
 
-  case class Event(id: Int, name: String, categoryId: Int, startTime: Timestamp, endTime: Timestamp, latitude: Double, longitude: Double, userId: Int) extends HasId
+  case class Event(id: Int, name: String, categoryId: Int, startTime: LocalDateTime, endTime: LocalDateTime, latitude: Double, longitude: Double, userId: Int) extends HasId
 
   case class Category(id: Int, name: String) extends HasId
 

@@ -1,6 +1,7 @@
 package server
 
 import java.sql.Timestamp
+import java.time.LocalDateTime
 
 class Validation {
 
@@ -37,7 +38,7 @@ class Validation {
   private def emailRule(email: String) = """\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\z""".r.findFirstMatchIn(email).isDefined
   private def passwordRule(password: String) = password.length >= 8
   private def eventNameRule(name: String) = name.length > 2 && name.length < 60
-  private def startEndTimeValidate(startTime: Timestamp, endTime: Timestamp) = startTime.before(endTime)
+  private def startEndTimeValidate(startTime: LocalDateTime, endTime: LocalDateTime) = startTime.isBefore(endTime)
 
   private def validate(rules: List[(Boolean, DomainValidation)]) : List[String] =
     rules.foldLeft(List[Option[String]]()) {
@@ -56,7 +57,7 @@ class Validation {
     ))
   }
 
-  def createEventValidate(name: String, startTime: Timestamp, endTime: Timestamp): List[String] = {
+  def createEventValidate(name: String, startTime: LocalDateTime, endTime: LocalDateTime): List[String] = {
     validate(List(
       (eventNameRule(name), EventNameValidation),
       (startEndTimeValidate(startTime, endTime), TimeValidation)
