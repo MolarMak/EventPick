@@ -1,4 +1,4 @@
-package com.molarmak.eventpick.model.main.create
+package com.molarmak.eventpick.model.main.createEvent
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog

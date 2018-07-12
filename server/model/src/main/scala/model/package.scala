@@ -12,6 +12,8 @@ package object model {
 
   case class Category(id: Int, name: String) extends HasId
 
+  case class EventTrigger(id: Int, userId: Int, latitude: Double, longitude: Double, radius: Int, pushId: String) extends HasId
+
   @JsonCodec
   case class ResponseFalse(result: Boolean = false, errors: List[String])
 
@@ -50,4 +52,25 @@ package object model {
 
   @JsonCodec
   case class UserInfoResponse(result: Boolean = true, info: UserInfoModel)
+
+  @JsonCodec
+  case class EventTriggerModelIn(token: String, latitude: Double, longitude: Double, radius: Int, pushId: String)
+
+  @JsonCodec
+  case class EventTriggerModelOut(id: Int, latitude: Double, longitude: Double, radius: Int)
+
+  @JsonCodec
+  case class EventTriggersModel(result: Boolean = true, eventTriggers: Vector[EventTriggerModelOut])
+
+  @JsonCodec
+  case class Notification(body: String, content_available: Boolean = true, priority: String = "high")
+
+  @JsonCodec
+  case class NotificationSend(to: String, notification: Notification)
+
+  @JsonCodec
+  case class DeleteEventTrigger(eventTriggerId: Int, token: String)
+
+  @JsonCodec
+  case class DeleteEventTriggerResponse(result: Boolean = true, eventTriggerId: Int)
 }

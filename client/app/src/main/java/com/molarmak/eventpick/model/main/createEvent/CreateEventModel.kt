@@ -1,4 +1,4 @@
-package com.molarmak.eventpick.model.main.create
+package com.molarmak.eventpick.model.main.createEvent
 
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName

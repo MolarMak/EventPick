@@ -1,4 +1,4 @@
-package com.molarmak.eventpick.model.main.create
+package com.molarmak.eventpick.model.main.createEvent
 
 import com.google.gson.Gson
 import com.molarmak.eventpick.app.*

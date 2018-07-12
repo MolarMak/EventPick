@@ -1,24 +1,35 @@
 package server
 
-import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.format.{DateTimeFormatter, DateTimeParseException}
 
+import akka.actor.ActorSystem
+import akka.http.javadsl.Http
+import akka.http.scaladsl.{Http, HttpExt}
+import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials, RawHeader}
+import akka.http.scaladsl.model._
 import akka.http.scaladsl.server._
+import akka.stream.ActorMaterializer
+import com.typesafe.config.ConfigFactory
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 import io.circe.Json
 import io.circe.syntax._
 import model._
-import repositories.{CategoryRepository, EventRepository, UserRepository}
+import repositories._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 class EventPickApi(categoryRepository: CategoryRepository,
                    userRepository: UserRepository,
-                   eventRepository: EventRepository) extends Directives with FailFastCirceSupport {
+                   eventRepository: EventRepository,
+                   eventTriggerRepository: EventTriggerRepository,
+                   http: HttpExt) extends Directives with FailFastCirceSupport {
 
-  val apiVersion = "v1"
-  val isLogged = true
+  private val apiVersion = "v1"
+  private val isLogged = true
+  private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+  val cmToken = ConfigFactory.load().getString("credentials.cm_token")
 
   def getCategories: Route =
     path("api" / apiVersion / "getCategories") {
@@ -108,7 +119,6 @@ class EventPickApi(categoryRepository: CategoryRepository,
 
             case Success(Some(id)) =>
               try {
-                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 val eventData = Event(1,
                   event.name,
                   event.categoryId,
@@ -125,7 +135,10 @@ class EventPickApi(categoryRepository: CategoryRepository,
                 } else {
                   val insertEventFuture = eventRepository.insert(eventData)
                   onComplete(insertEventFuture) {
-                    case Success(1) => complete(responseTrue())
+                    case Success(1) =>
+                      sendNotification(event)
+                      complete(responseTrue())
+
                     case _ => complete(responseFalse("Can't create event"))
                   }
                 }
@@ -178,6 +191,67 @@ class EventPickApi(categoryRepository: CategoryRepository,
       }
     }
 
+  def createEventTrigger: Route =
+    path("api" / apiVersion / "createEventTrigger") {
+      post {
+        entity(as[EventTriggerModelIn]) { eventTrigger =>
+          log("createEventTrigger", s"input: $eventTrigger")
+
+          val findUserTokenFuture = userRepository.findIdByToken(eventTrigger.token)
+
+          onComplete(findUserTokenFuture) {
+            case Success(Some(id)) =>
+              val eventTriggerData = EventTrigger(1,
+                id,
+                eventTrigger.latitude,
+                eventTrigger.longitude,
+                eventTrigger.radius,
+                eventTrigger.pushId
+              )
+
+              val insertEventTriggerFuture = eventTriggerRepository.insert(eventTriggerData)
+              onComplete(insertEventTriggerFuture) {
+                case Success(1) => complete(responseTrue())
+                case _ => complete(responseFalse("Can't create event trigger"))
+              }
+
+            case _ => complete(responseFalse("Not valid token"))
+          }
+        }
+      }
+    }
+
+  def deleteEventTrigger: Route =
+    path("api" / apiVersion / "deleteEventTrigger") {
+      delete {
+        entity(as[DeleteEventTrigger]) { deleteEventTrigger =>
+          log("deleteEventTrigger", s"input: $deleteEventTrigger")
+
+          val findFuture = eventTriggerRepository.findByIdAndToken(deleteEventTrigger.eventTriggerId, deleteEventTrigger.token)
+          onComplete(findFuture) {
+            case Success(Some(id)) =>
+              val deleteEventTriggerFuture = eventTriggerRepository.deleteById(id)
+              onComplete(deleteEventTriggerFuture) {
+                case Success(1) => complete(DeleteEventTriggerResponse(eventTriggerId = id).asJson)
+                case _ => complete(responseFalse("Can't delete trigger"))
+              }
+
+            case _ => complete(responseFalse("Token or trigger id not valid"))
+          }
+        }
+      }
+    }
+
+  def getEventTriggers: Route =
+    path("api" / apiVersion / "getEventTriggers") {
+      parameters('token) { token =>
+        val findAllEventTriggersFuture = eventTriggerRepository.findAllMy(token)
+        onSuccess(findAllEventTriggersFuture) { eventTriggers =>
+          complete(EventTriggersModel(eventTriggers = eventTriggers.map(eventTriggerOut)).asJson)
+        }
+      }
+    }
+
   def getUserInfo: Route =
     path("api" / apiVersion / "getUserInfo") {
       parameter('latitude.as[Double], 'longitude.as[Double]) { (latitude, longitude) =>
@@ -198,7 +272,18 @@ class EventPickApi(categoryRepository: CategoryRepository,
       }
     }
 
-  def routes: Route = getCategories ~ register ~ login ~ logout ~ createEvent ~ getEvents ~ deleteEvent ~ getUserInfo
+  def routes: Route =
+      getCategories ~
+      register ~
+      login ~
+      logout ~
+      createEvent ~
+      getEvents ~
+      deleteEvent ~
+      getUserInfo ~
+      createEventTrigger ~
+      getEventTriggers ~
+      deleteEventTrigger
 
   def responseTrue(): Json = ResponseTrue().asJson
 
@@ -224,8 +309,37 @@ class EventPickApi(categoryRepository: CategoryRepository,
     randomAlphanumericString(32)
   }
 
+  def sendNotification(event: EventModelIn): Unit = {
+    val getTriggers = eventTriggerRepository.getNotMyTriggers(event)
+
+    getTriggers.onComplete {
+      case Success(triggers) =>
+        log("sendNotification", triggers.toString())
+        val notification = Notification(body = s"${event.name} event created in your notification zone!")
+        triggers.foreach{ it =>
+          val notificationSend = NotificationSend(it.pushId, notification)
+          val request = HttpRequest(
+            HttpMethods.POST,
+            "https://fcm.googleapis.com/fcm/send",
+            entity = HttpEntity(
+              ContentTypes.`application/json`,
+              notificationSend.asJson.noSpaces)
+          ).withHeaders(RawHeader("Authorization", s"key=$cmToken"))
+          val response = http.singleRequest(request)
+          response.onComplete {
+            case Success(httpResponse) => log("sendNotification", s"response: $httpResponse")
+            case Failure(httpResponse) => log("sendNotification", s"failure response: $httpResponse")
+            case _ => log("sendNotification", s"unknown failure")
+          }
+          log("sendNotification", s"response: $response")
+        }
+
+
+      case Failure(t) => log("sendNotication", "An error has occurred: " + t.getMessage)
+    }
+  }
+
   def eventToDataType(event: Event): EventModelOut = {
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
     EventModelOut(
       event.id,
       event.name,
@@ -235,6 +349,15 @@ class EventPickApi(categoryRepository: CategoryRepository,
       event.latitude,
       event.longitude,
       event.userId
+    )
+  }
+
+  def eventTriggerOut(eventTrigger: EventTrigger): EventTriggerModelOut = {
+    EventTriggerModelOut(
+      eventTrigger.id,
+      eventTrigger.latitude,
+      eventTrigger.longitude,
+      eventTrigger.radius
     )
   }
 

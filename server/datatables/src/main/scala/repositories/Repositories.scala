@@ -1,7 +1,7 @@
 package repositories
 
-import datatables.{CategoryTable, EventTable, UserTable}
-import model.{Category, Event, User}
+import datatables.{CategoryTable, EventTable, EventTriggerTable, UserTable}
+import model._
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,15 +12,17 @@ class CategoryRepository(val db: Database)(implicit ec: ExecutionContext) extend
     db.run((
       UserTable.table.schema ++
       CategoryTable.table.schema ++
-      EventTable.table.schema).create
+      EventTable.table.schema ++
+      EventTriggerTable.table.schema).create
     )
   }
 
   def dropSchema(): Future[Unit] = {
     db.run((
       UserTable.table.schema ++
-        CategoryTable.table.schema ++
-        EventTable.table.schema).drop
+      CategoryTable.table.schema ++
+      EventTable.table.schema ++
+      EventTriggerTable.table.schema).drop
     )
   }
 
@@ -122,6 +124,52 @@ class EventRepository(val db: Database)(implicit ec: ExecutionContext) extends B
         .map(_._2)
         .filter(_.id === eventId)
         .map(_.id)
+        .result
+        .headOption
+    )
+}
+
+class EventTriggerRepository(val db: Database)(implicit ec: ExecutionContext) extends BaseRepository[EventTrigger](EventTriggerTable.table) {
+
+  private val distanceCalculator = new DistanceCalculator
+
+  def findAllMy(token: String): Future[Vector[EventTrigger]] =
+    db.run(
+      EventTriggerTable.table
+        .join(UserTable.table)
+        .on(_.userId === _.id)
+        .filter(_._2.token === token)
+        .map(_._1)
+        .to[Vector]
+        .result
+    )
+
+  def getNotMyTriggers(event: EventModelIn): Future[Seq[EventTrigger]] =
+    for {
+      result <- db.run(
+        EventTriggerTable.table
+          .join(UserTable.table)
+          .on(_.userId === _.id)
+          .filter(_._2.token =!= event.token)
+          .map(_._1)
+          .result
+      )
+    } yield {
+      result.filter(it => distanceCalculator.isLocationInRadius(
+        Location(it.latitude, it.longitude),
+        Location(event.latitude, event.longitude),
+        it.radius
+      ))
+    }
+
+  def findByIdAndToken(eventTriggerId: Int, token: String): Future[Option[Int]] =
+    db.run(
+      EventTriggerTable.table
+        .join(UserTable.table)
+        .on(_.userId === _.id)
+        .filter(_._2.token === token)
+        .map(_._1.id)
+        .filter(_ === eventTriggerId)
         .result
         .headOption
     )

@@ -24,7 +24,8 @@ import com.molarmak.eventpick.app.errorHandleToast
 import com.molarmak.eventpick.app.runOnMain
 import com.molarmak.eventpick.model.auth.AuthActivity
 import com.molarmak.eventpick.model.main.MainActivityView
-import com.molarmak.eventpick.model.main.create.CreateEventFragment
+import com.molarmak.eventpick.model.main.createEvent.CreateEventFragment
+import com.molarmak.eventpick.model.main.notifications.NotificationsFragment
 import kotlinx.android.synthetic.main.fragment_map_all.*
 import kotlinx.android.synthetic.main.fragment_my_events.*
 
@@ -55,6 +56,13 @@ class MapAllFragment: Fragment(), OnMapReadyCallback, AllEventsView {
             if(activity != null && isVisible) {
                 (activity as MainActivityView).let {
                     it.navigate(MyEventsFragment())
+                }
+            }
+        }
+        notificationButton.setOnClickListener {
+            if(activity != null && isVisible) {
+                (activity as MainActivityView).let {
+                    it.navigate(NotificationsFragment())
                 }
             }
         }

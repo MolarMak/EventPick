@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:hint="Password"
             android:inputType="textPassword"
-            android:text="12345qwerty"/>
+            android:text="123456789"/>
 
         <TextView
             android:id="@+id/errorView"

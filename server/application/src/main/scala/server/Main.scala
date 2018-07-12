@@ -1,9 +1,9 @@
 package server
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.Http
+import akka.http.scaladsl.{Http, HttpExt}
 import akka.stream.ActorMaterializer
-import repositories.{CategoryRepository, EventRepository, UserRepository}
+import repositories.{CategoryRepository, EventRepository, EventTriggerRepository, UserRepository}
 import slick.jdbc.PostgresProfile.api._
 
 import scala.concurrent.Await
@@ -14,15 +14,16 @@ object Main {
   def main(args: Array[String]): Unit = {
     val db = Database.forConfig("postgresql")
 
+    implicit val system = ActorSystem("event-bus-system")
+    implicit val materializer = ActorMaterializer()
+    val http: HttpExt = Http()
+
     val categoryRepository = new CategoryRepository(db)
     val userRepository = new UserRepository(db)
     val eventRepository = new EventRepository(db)
-    val eventPickApi = new EventPickApi(categoryRepository, userRepository, eventRepository)
+    val eventTriggerRepository = new EventTriggerRepository(db)
+    val eventPickApi = new EventPickApi(categoryRepository, userRepository, eventRepository, eventTriggerRepository, http)
 
-    implicit val system = ActorSystem("event-bus-system")
-    implicit val materializer = ActorMaterializer()
-
-    val http = Http()
     val bindingFuture = http.bindAndHandle(eventPickApi.routes, "0.0.0.0", 8080)
 
     scala.io.StdIn.readLine("Server is up")
